@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 #   SokolShader.py
 #
-#   Fips code-generator script for invoking oryol-shdc during the build.
+#   Fips code-generator script for invoking sokol-shdc during the build.
 #
 #   Use the cmake macro 'sokol_shader(glsl-file)' inside a fips application
 #   target (fips_begin_* / fips_end_*) to hook the code-generation
@@ -46,3 +46,4 @@ def generate(input, out_src, out_hdr, args):
         res = subprocess.call(cmd)
         if res != 0:
             log.error('sokol-shdc return with error {}'.format(res))
+
