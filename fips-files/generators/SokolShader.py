@@ -36,7 +36,7 @@ def find_shdc():
 def generate(input, out_src, out_hdr, args):
     errfmt = 'msvc' if args['compiler']=='MSVC' else 'gcc'
     if util.isDirty(Version, [input], [out_hdr]):
-        print('## oryol-shdc: {} {}'.format(input, args['slang']))
+        print('## sokol-shdc: {} {}'.format(input, args['slang']))
         cmd = [find_shdc(), 
                 '--input', input,
                 '--output', out_hdr,
