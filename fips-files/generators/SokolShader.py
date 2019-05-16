@@ -3,10 +3,9 @@
 #
 #   Fips code-generator script for invoking sokol-shdc during the build.
 #
-#   Use the cmake macro 'sokol_shader(glsl-file)' inside a fips application
-#   target (fips_begin_* / fips_end_*) to hook the code-generation
+#   Use the cmake macro 'sokol_shader([glsl-file] [shader-dialects])' inside a fips
+#   application target (fips_begin_* / fips_end_*) to hook the code-generation
 #   build job into the build process.
-#
 #-------------------------------------------------------------------------------
 
 Version = 1
@@ -46,5 +45,5 @@ def generate(input, out_src, out_hdr, args):
                 '--noifdef']
         res = subprocess.call(cmd)
         if res != 0:
-            log.error('sokol-shdc return with error {}'.format(res))
+            log.error('sokol-shdc returned with error code {}'.format(res))
 
