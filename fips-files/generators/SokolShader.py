@@ -3,8 +3,8 @@
 #
 #   Fips code-generator script for invoking sokol-shdc during the build.
 #
-#   Use the cmake macro 'sokol_shader([glsl-file] [shader-dialects])' inside a fips
-#   application target (fips_begin_* / fips_end_*) to hook the code-generation
+#   Use the cmake macro 'sokol_shader([glsl-file] [shader-dialects])' inside a
+#   fips target (fips_begin_* / fips_end_*) to hook the code-generation
 #   build job into the build process.
 #-------------------------------------------------------------------------------
 
