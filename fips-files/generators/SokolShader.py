@@ -8,7 +8,7 @@
 #   build job into the build process.
 #-------------------------------------------------------------------------------
 
-Version = 1
+Version = 2
 
 import os, platform, subprocess
 import genutil as util
@@ -42,6 +42,7 @@ def generate(input, out_src, out_hdr, args):
                 '--slang', args['slang'],
                 '--genver', str(Version),
                 '--errfmt', errfmt,
+                '--bytecode',
                 '--noifdef']
         res = subprocess.call(cmd)
         if res != 0:
