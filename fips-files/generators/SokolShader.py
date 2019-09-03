@@ -42,6 +42,7 @@ def generate(input, out_src, out_hdr, args):
                 '--slang', args['slang'],
                 '--genver', str(Version),
                 '--errfmt', errfmt,
+                '--format', 'sokol',
                 '--bytecode',
                 '--noifdef']
         res = subprocess.call(cmd)
