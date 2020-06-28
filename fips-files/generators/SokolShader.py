@@ -8,7 +8,7 @@
 #   build job into the build process.
 #-------------------------------------------------------------------------------
 
-Version = 2
+Version = 3
 
 import os, platform, subprocess
 import genutil as util
