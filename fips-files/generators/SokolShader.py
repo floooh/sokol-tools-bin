@@ -43,8 +43,7 @@ def generate(input, out_src, out_hdr, args):
                 '--genver', str(Version),
                 '--errfmt', errfmt,
                 '--format', 'sokol',
-                '--bytecode',
-                '--noifdef']
+                '--bytecode']
         res = subprocess.call(cmd)
         if res != 0:
             log.error('sokol-shdc returned with error code {}'.format(res))
