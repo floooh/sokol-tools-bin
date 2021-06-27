@@ -48,6 +48,9 @@ def generate(input, out_src, out_hdr, args):
             cmd.extend(['--defines', args['defines']])
         if 'module' in args:
             cmd.extend(['--module', args['module']])
+        if 'reflection' in args:
+            if args['reflection']:
+                cmd.extend(['--reflection'])
         res = subprocess.call(cmd)
         if res != 0:
             log.error('sokol-shdc returned with error code {}'.format(res))
