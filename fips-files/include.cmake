@@ -3,6 +3,12 @@ macro(sokol_shader shd slang)
     fips_generate(TYPE SokolShader FROM ${shd} HEADER ${shd}.h OUT_OF_SOURCE ARGS ${args})
 endmacro()
 
+# special version which doesn't generate binary output, this allows shaders to be debugged
+macro(sokol_shader_debuggable shd slang)
+    set(args "{slang: '${slang}', compiler: '${CMAKE_C_COMPILER_ID}', debuggable: true }")
+    fips_generate(TYPE SokolShader FROM ${shd} HEADER ${shd}.h OUT_OF_SOURCE ARGS ${args})
+endmacro()
+
 macro(sokol_shader_variant shd slang module defines)
     set(args "{slang: '${slang}', compiler: '${CMAKE_C_COMPILER_ID}', defines: '${defines}', module: '${module}' }")
     fips_generate(TYPE SokolShader FROM ${shd} HEADER ${shd}.${module}.h OUT_OF_SOURCE ARGS ${args})

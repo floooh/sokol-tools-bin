@@ -39,14 +39,13 @@ def generate(input, out_src, out_hdr, args):
     errfmt = 'msvc' if args['compiler']=='MSVC' else 'gcc'
     if util.isDirty(Version, [input], [out_hdr]):
         print('## sokol-shdc: {} {} {}'.format(input, out_hdr, str(args)))
-        cmd = [find_shdc(), 
+        cmd = [find_shdc(),
                 '--input', input,
                 '--output', out_hdr,
                 '--slang', args['slang'],
                 '--genver', str(Version),
                 '--errfmt', errfmt,
-                '--format', 'sokol',
-                '--bytecode']
+                '--format', 'sokol']
         if 'defines' in args:
             cmd.extend(['--defines', args['defines']])
         if 'module' in args:
@@ -54,6 +53,10 @@ def generate(input, out_src, out_hdr, args):
         if 'reflection' in args:
             if args['reflection']:
                 cmd.extend(['--reflection'])
+        if 'debuggable' in args and args['debuggable']:
+            pass
+        else:
+            cmd.extend(['--bytecode'])
         res = subprocess.call(cmd)
         if res != 0:
             log.error('sokol-shdc returned with error code {}'.format(res))
