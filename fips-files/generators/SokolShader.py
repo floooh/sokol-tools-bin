@@ -26,8 +26,8 @@ def find_shdc():
         else:
             shdc_path += 'osx/'
     elif platform.system() == 'Linux':
-        if os.uname()[1] == 'raspberrypi':
-            shdc_path += 'raspi/'
+        if platform.machine() in ['aarch64', 'arm64']:
+            shdc_path += 'linux_arm64/'
         else:
             shdc_path += 'linux/'
     else:
