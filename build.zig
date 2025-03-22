@@ -79,13 +79,17 @@ pub fn compile(b: *Build, opts: Options) !*Build.Step.Run {
 
 fn getShdcLazyPath(dep_shdc: *Build.Dependency) !Build.LazyPath {
     const intel = builtin.cpu.arch.isX86();
-    const sub_path = switch (builtin.os.tag) {
+    const opt_sub_path: ?[]const u8 = switch (builtin.os.tag) {
         .windows => "bin/win32/sokol-shdc.exe",
         .linux => if (intel) "bin/linux/sokol-shdc" else "bin/linux_arm64/sokol-shdc",
         .macos => if (intel) "bin/osx/sokol-shdc" else "bin/osx_arm64/sokol-shdc",
-        else => error.ShdcUnsupportedPlatform,
+        else => null,
     };
-    return dep_shdc.path(sub_path);
+    if (opt_sub_path) |sub_path| {
+        return dep_shdc.path(sub_path);
+    } else {
+        return error.ShdcUnsupportedPlatform;
+    }
 }
 
 fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []const u8 {
