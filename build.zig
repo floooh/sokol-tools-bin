@@ -57,7 +57,7 @@ pub const Options = struct {
     output: Build.LazyPath,
     slang: Slang,
     format: Format = .sokol_zig,
-    tmpDir: ?Build.LazyPath = null,
+    tmp_dir: ?Build.LazyPath = null,
     defines: ?[][]const u8 = null,
     module: ?[]const u8 = null,
     reflection: bool = false,
@@ -100,8 +100,8 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     try arr.appendSlice(a, &.{ "-o", opts.output.getPath(b) });
     try arr.appendSlice(a, &.{ "-l", try opts.slang.toString(a) });
     try arr.appendSlice(a, &.{ "-f", opts.format.toString() });
-    if (opts.tmpDir) |tmpDir| {
-        try arr.appendSlice(a, &.{ "--tmpdir", tmpDir.getPath(b) });
+    if (opts.tmp_dir) |tmp_dir| {
+        try arr.appendSlice(a, &.{ "--tmpdir", tmp_dir.getPath(b) });
     }
     if (opts.defines) |defines| {
         try arr.appendSlice(a, &.{ "--defines", try std.mem.join(a, ":", defines) });
