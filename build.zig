@@ -23,6 +23,7 @@ pub const Options = struct {
     ifdef: bool = false,
     noifdef: bool = false,
     save_intermediate_spirv: bool = false,
+    no_log_cmdline: bool = true,
 };
 
 pub fn compile(b: *Build, opts: Options) !*Build.Step.Run {
@@ -128,6 +129,9 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     }
     if (opts.save_intermediate_spirv) {
         try arr.append(a, "--save-intermediate-spirv");
+    }
+    if (opts.no_log_cmdline) {
+        try arr.append(a, "--no-log-cmdline");
     }
     // important: keep this last
     try arr.append(a, "-i");
