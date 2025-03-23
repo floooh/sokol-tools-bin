@@ -7,50 +7,6 @@ const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const Build = std.Build;
 
-/// target shader languages
-/// NOTE: make sure that field names match the cmdline arg string
-pub const Slang = packed struct(u10) {
-    glsl410: bool = false,
-    glsl430: bool = false,
-    glsl300es: bool = false,
-    glsl310es: bool = false,
-    hlsl4: bool = false,
-    hlsl5: bool = false,
-    metal_macos: bool = false,
-    metal_ios: bool = false,
-    metal_sim: bool = false,
-    wgsl: bool = false,
-
-    fn toString(self: Slang, a: Allocator) ![]const u8 {
-        var strings: [16][]const u8 = undefined;
-        var num_strings: usize = 0;
-        inline for (std.meta.fields(Slang)) |field| {
-            if (@field(self, field.name)) {
-                strings[num_strings] = field.name;
-                num_strings += 1;
-            }
-        }
-        return std.mem.join(a, ":", strings[0..num_strings]);
-    }
-};
-
-/// the code-generation target language
-/// NOTE: make sure that the item names match the cmdline arg string
-pub const Format = enum {
-    sokol,
-    sokol_impl,
-    sokol_zig,
-    sokol_nim,
-    sokol_odin,
-    sokol_rust,
-    sokol_d,
-    sokol_jai,
-
-    fn toString(self: Format) []const u8 {
-        return @tagName(self);
-    }
-};
-
 pub const Options = struct {
     dep_shdc: *Build.Dependency,
     input: Build.LazyPath,
@@ -69,12 +25,56 @@ pub const Options = struct {
     save_intermediate_spirv: bool = false,
 };
 
-/// 'raw' compile function which directly invokes the shdc compiler
-/// in a build system RunStep.
 pub fn compile(b: *Build, opts: Options) !*Build.Step.Run {
     const shdc_path = try getShdcLazyPath(opts.dep_shdc);
     const args = try optsToArgs(opts, b, shdc_path);
-    return b.addSystemCommand(args);
+    var step = b.addSystemCommand(args);
+    step.addFileArg(opts.input);
+    return step;
+}
+
+/// target shader languages
+/// NOTE: make sure that field names match the cmdline arg string
+pub const Slang = packed struct(u10) {
+    glsl410: bool = false,
+    glsl430: bool = false,
+    glsl300es: bool = false,
+    glsl310es: bool = false,
+    hlsl4: bool = false,
+    hlsl5: bool = false,
+    metal_macos: bool = false,
+    metal_ios: bool = false,
+    metal_sim: bool = false,
+    wgsl: bool = false,
+};
+
+fn slangToString(slang: Slang, a: Allocator) ![]const u8 {
+    var strings: [16][]const u8 = undefined;
+    var num_strings: usize = 0;
+    inline for (std.meta.fields(Slang)) |field| {
+        if (@field(slang, field.name)) {
+            strings[num_strings] = field.name;
+            num_strings += 1;
+        }
+    }
+    return std.mem.join(a, ":", strings[0..num_strings]);
+}
+
+/// the code-generation target language
+/// NOTE: make sure that the item names match the cmdline arg string
+pub const Format = enum {
+    sokol,
+    sokol_impl,
+    sokol_zig,
+    sokol_nim,
+    sokol_odin,
+    sokol_rust,
+    sokol_d,
+    sokol_jai,
+};
+
+fn formatToString(f: Format) []const u8 {
+    return @tagName(f);
 }
 
 fn getShdcLazyPath(dep_shdc: *Build.Dependency) !Build.LazyPath {
@@ -96,10 +96,9 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     const a = b.allocator;
     var arr: std.ArrayListUnmanaged([]const u8) = .empty;
     try arr.append(a, tool_path.getPath(b));
-    try arr.appendSlice(a, &.{ "-i", opts.input.getPath(b) });
     try arr.appendSlice(a, &.{ "-o", opts.output.getPath(b) });
-    try arr.appendSlice(a, &.{ "-l", try opts.slang.toString(a) });
-    try arr.appendSlice(a, &.{ "-f", opts.format.toString() });
+    try arr.appendSlice(a, &.{ "-l", try slangToString(opts.slang, a) });
+    try arr.appendSlice(a, &.{ "-f", formatToString(opts.format) });
     if (opts.tmp_dir) |tmp_dir| {
         try arr.appendSlice(a, &.{ "--tmpdir", tmp_dir.getPath(b) });
     }
@@ -130,6 +129,8 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     if (opts.save_intermediate_spirv) {
         try arr.append(a, "--save-intermediate-spirv");
     }
+    // important: keep this last
+    try arr.append(a, "-i");
     return arr.toOwnedSlice(a);
 }
 
