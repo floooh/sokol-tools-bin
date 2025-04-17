@@ -1,6 +1,6 @@
 //! Helper code to invoke sokol-shdc from the Zig build system.
 //! See https://github.com/floooh/sokol-zig for an example
-//! of how to use sokol-tools-bin as a lazy dependency and
+//! of how to use sokol-tools-bin as dependency and
 //! compile shaders (search for `shdc.compile` in the sokol-zig build.zig)
 const std = @import("std");
 const builtin = @import("builtin");
