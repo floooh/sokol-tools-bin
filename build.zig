@@ -10,7 +10,7 @@ const Build = std.Build;
 pub const Options = struct {
     dep_shdc: *Build.Dependency,
     input: Build.LazyPath,
-    output: Build.LazyPath,
+    output: []const u8,
     slang: Slang,
     format: Format = .sokol_zig,
     tmp_dir: ?Build.LazyPath = null,
@@ -26,12 +26,23 @@ pub const Options = struct {
     no_log_cmdline: bool = true,
 };
 
-pub fn compile(b: *Build, opts: Options) !*Build.Step.Run {
+pub const Result = struct {
+    run: *Build.Step.Run,
+    output: Build.LazyPath,
+};
+
+pub fn compile(b: *Build, opts: Options) !Result {
     const shdc_path = try getShdcLazyPath(opts.dep_shdc);
     const args = try optsToArgs(opts, b, shdc_path);
-    var step = b.addSystemCommand(args);
-    step.addFileArg(opts.input);
-    return step;
+    var run = b.addSystemCommand(args);
+    run.addArgs(&.{"--input"});
+    run.addFileArg(opts.input);
+    run.addArgs(&.{"--output"});
+    const output = run.addOutputFileArg(opts.output);
+    return .{
+        .run = run,
+        .output = output,
+    };
 }
 
 /// target shader languages
@@ -78,14 +89,18 @@ fn formatToString(f: Format) []const u8 {
     return @tagName(f);
 }
 
-fn getShdcLazyPath(dep_shdc: *Build.Dependency) !Build.LazyPath {
+pub fn getShdcLazySubPath() ?[]const u8 {
     const intel = builtin.cpu.arch.isX86();
-    const opt_sub_path: ?[]const u8 = switch (builtin.os.tag) {
+    return switch (builtin.os.tag) {
         .windows => "bin/win32/sokol-shdc.exe",
         .linux => if (intel) "bin/linux/sokol-shdc" else "bin/linux_arm64/sokol-shdc",
         .macos => if (intel) "bin/osx/sokol-shdc" else "bin/osx_arm64/sokol-shdc",
         else => null,
     };
+}
+
+pub fn getShdcLazyPath(dep_shdc: *Build.Dependency) !Build.LazyPath {
+    const opt_sub_path = getShdcLazySubPath();
     if (opt_sub_path) |sub_path| {
         return dep_shdc.path(sub_path);
     } else {
@@ -97,7 +112,6 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     const a = b.allocator;
     var arr: std.ArrayListUnmanaged([]const u8) = .empty;
     try arr.append(a, tool_path.getPath(b));
-    try arr.appendSlice(a, &.{ "-o", opts.output.getPath(b) });
     try arr.appendSlice(a, &.{ "-l", try slangToString(opts.slang, a) });
     try arr.appendSlice(a, &.{ "-f", formatToString(opts.format) });
     if (opts.tmp_dir) |tmp_dir| {
@@ -133,8 +147,6 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     if (opts.no_log_cmdline) {
         try arr.append(a, "--no-log-cmdline");
     }
-    // important: keep this last
-    try arr.append(a, "-i");
     return arr.toOwnedSlice(a);
 }
 
