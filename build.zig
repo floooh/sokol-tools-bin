@@ -98,14 +98,21 @@ fn formatToString(f: Format) []const u8 {
     return @tagName(f);
 }
 
-pub fn getShdcSubPath() ?[]const u8 {
-    const intel = builtin.cpu.arch.isX86();
-    return switch (builtin.os.tag) {
-        .windows => "bin/win32/sokol-shdc.exe",
-        .linux => if (intel) "bin/linux/sokol-shdc" else "bin/linux_arm64/sokol-shdc",
-        .macos => if (intel) "bin/osx/sokol-shdc" else "bin/osx_arm64/sokol-shdc",
-        else => null,
-    };
+pub fn getShdcSubPath() error{ShdcUnsupportedPlatform}![]const u8 {
+    const os = builtin.os.tag;
+    const arch = builtin.cpu.arch;
+
+    if (os == .macos and arch == .x86_64) return "bin/osx/sokol-shdc";
+    if (os == .macos and arch == .aarch64) return "bin/osx_arm64/sokol-shdc";
+    if (os == .linux and arch == .x86_64) return "bin/linux/sokol-shdc";
+    if (os == .linux and arch == .aarch64) return "bin/linux_arm64/sokol-shdc";
+    if (os == .windows and arch == .x86_64) return "bin/win32/sokol-shdc.exe";
+
+    std.log.err("Unsupported platform: {s}-{s}", .{
+        @tagName(os),
+        @tagName(arch),
+    });
+    return error.ShdcUnsupportedPlatform;
 }
 
 fn getShdcLazyPath(
@@ -113,22 +120,13 @@ fn getShdcLazyPath(
     opt_shdc_dep: ?*Build.Dependency,
     opt_shdc_dir: ?[]const u8,
 ) error{ ShdcUnsupportedPlatform, ShdcMissingPath }!Build.LazyPath {
-    const sub_path = getShdcSubPath() orelse {
-        std.log.err("Unsupported platform: {s}-{s}", .{
-            @tagName(builtin.os.tag),
-            @tagName(builtin.cpu.arch),
-        });
-        return error.ShdcUnsupportedPlatform;
-    };
-
+    const sub_path = try getShdcSubPath();
     if (opt_shdc_dep) |shdc_dep| {
         return shdc_dep.path(sub_path);
     }
-
     if (opt_shdc_dir) |shdc_dir| {
         return b.path(b.pathJoin(&.{ shdc_dir, sub_path }));
     }
-
     std.log.err("Missing Sokol shader compiler path. Provide either shdc_dep or shdc_dir in Options struct", .{});
     return error.ShdcMissingPath;
 }
@@ -193,5 +191,6 @@ pub fn build(b: *Build) !void {
         .reflection = true,
     });
 
-    b.getInstallStep().dependOn(&result.run.step);
+    const test_step = b.step("test", "Test sokol-shdc compilation");
+    test_step.dependOn(&result.run.step);
 }
