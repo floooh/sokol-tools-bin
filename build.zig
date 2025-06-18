@@ -8,7 +8,8 @@ const Allocator = std.mem.Allocator;
 const Build = std.Build;
 
 pub const Options = struct {
-    dep_shdc: *Build.Dependency,
+    shdc_dep: ?*Build.Dependency = null,
+    shdc_dir: ?[]const u8 = null,
     input: Build.LazyPath,
     output: []const u8,
     slang: Slang,
@@ -17,6 +18,7 @@ pub const Options = struct {
     defines: ?[][]const u8 = null,
     module: ?[]const u8 = null,
     reflection: bool = false,
+    insource: bool = true,
     bytecode: bool = false,
     dump: bool = false,
     genver: ?[]const u8 = null,
@@ -32,13 +34,20 @@ pub const Result = struct {
 };
 
 pub fn compile(b: *Build, opts: Options) !Result {
-    const shdc_path = try getShdcLazyPath(opts.dep_shdc);
-    const args = try optsToArgs(opts, b, shdc_path);
+    const shdc_lazy_path = try getShdcLazyPath(b, opts.shdc_dep, opts.shdc_dir);
+    const args = try optsToArgs(opts, b, shdc_lazy_path);
     var run = b.addSystemCommand(args);
     run.addArgs(&.{"--input"});
     run.addFileArg(opts.input);
     run.addArgs(&.{"--output"});
     const output = run.addOutputFileArg(opts.output);
+
+    if (opts.insource) {
+        const update_step = b.addUpdateSourceFiles();
+        update_step.addCopyFileToSource(output, opts.output);
+        update_step.step.dependOn(&run.step);
+    }
+
     return .{
         .run = run,
         .output = output,
@@ -89,7 +98,7 @@ fn formatToString(f: Format) []const u8 {
     return @tagName(f);
 }
 
-pub fn getShdcLazySubPath() ?[]const u8 {
+pub fn getShdcSubPath() ?[]const u8 {
     const intel = builtin.cpu.arch.isX86();
     return switch (builtin.os.tag) {
         .windows => "bin/win32/sokol-shdc.exe",
@@ -99,13 +108,29 @@ pub fn getShdcLazySubPath() ?[]const u8 {
     };
 }
 
-pub fn getShdcLazyPath(dep_shdc: *Build.Dependency) !Build.LazyPath {
-    const opt_sub_path = getShdcLazySubPath();
-    if (opt_sub_path) |sub_path| {
-        return dep_shdc.path(sub_path);
-    } else {
+fn getShdcLazyPath(
+    b: *Build,
+    opt_shdc_dep: ?*Build.Dependency,
+    opt_shdc_dir: ?[]const u8,
+) error{ ShdcUnsupportedPlatform, ShdcMissingPath }!Build.LazyPath {
+    const sub_path = getShdcSubPath() orelse {
+        std.log.err("Unsupported platform: {s}-{s}", .{
+            @tagName(builtin.os.tag),
+            @tagName(builtin.cpu.arch),
+        });
         return error.ShdcUnsupportedPlatform;
+    };
+
+    if (opt_shdc_dep) |shdc_dep| {
+        return shdc_dep.path(sub_path);
     }
+
+    if (opt_shdc_dir) |shdc_dir| {
+        return b.path(b.pathJoin(&.{ shdc_dir, sub_path }));
+    }
+
+    std.log.err("Missing Sokol shader compiler path. Provide either shdc_dep or shdc_dir in Options struct", .{});
+    return error.ShdcMissingPath;
 }
 
 fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []const u8 {
@@ -150,6 +175,23 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     return arr.toOwnedSlice(a);
 }
 
-pub fn build(b: *Build) void {
-    _ = b;
+pub fn build(b: *Build) !void {
+    const input_path = "testdata/triangle.glsl";
+    const output_path = "testdata/triangle.glsl.zig";
+
+    const result = try compile(b, .{
+        .shdc_dir = "./",
+        .input = b.path(input_path),
+        .output = output_path,
+        .slang = .{
+            .glsl430 = true,
+            .glsl310es = true,
+            .metal_macos = true,
+            .hlsl5 = true,
+            .wgsl = true,
+        },
+        .reflection = true,
+    });
+
+    b.getInstallStep().dependOn(&result.run.step);
 }
