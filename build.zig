@@ -183,10 +183,6 @@ pub fn build(b: *Build) !void {
         .output = output_path,
         .slang = .{
             .glsl430 = true,
-            .glsl310es = true,
-            .metal_macos = true,
-            .hlsl5 = true,
-            .wgsl = true,
         },
         .reflection = true,
     });
