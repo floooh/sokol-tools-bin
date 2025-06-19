@@ -30,6 +30,7 @@ pub const Options = struct {
 
 pub const Result = struct {
     run: *Build.Step.Run,
+    step: *Build.Step,
     output: Build.LazyPath,
 };
 
@@ -42,14 +43,16 @@ pub fn compile(b: *Build, opts: Options) !Result {
     run.addArgs(&.{"--output"});
     const output = run.addOutputFileArg(opts.output);
 
-    if (opts.insource) {
-        const update_step = b.addUpdateSourceFiles();
+    const insource_step = if (opts.insource) blk: {
+        var update_step = b.addUpdateSourceFiles();
         update_step.addCopyFileToSource(output, opts.output);
         update_step.step.dependOn(&run.step);
-    }
+        break :blk &update_step.step;
+    } else &run.step;
 
     return .{
         .run = run,
+        .step = if (opts.insource) insource_step else &run.step,
         .output = output,
     };
 }
@@ -108,10 +111,7 @@ pub fn getShdcSubPath() error{ShdcUnsupportedPlatform}![]const u8 {
     if (os == .linux and arch == .aarch64) return "bin/linux_arm64/sokol-shdc";
     if (os == .windows and arch == .x86_64) return "bin/win32/sokol-shdc.exe";
 
-    std.log.err("Unsupported platform: {s}-{s}", .{
-        @tagName(os),
-        @tagName(arch),
-    });
+    std.log.err("Unsupported platform: {s}-{s}", .{ @tagName(os), @tagName(arch) });
     return error.ShdcUnsupportedPlatform;
 }
 
@@ -192,5 +192,5 @@ pub fn build(b: *Build) !void {
     });
 
     const test_step = b.step("test", "Test sokol-shdc compilation");
-    test_step.dependOn(&result.run.step);
+    test_step.dependOn(result.step);
 }
