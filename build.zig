@@ -38,10 +38,22 @@ pub fn compile(b: *Build, opts: Options) !Build.LazyPath {
 }
 
 pub fn createSourceFile(b: *Build, opts: Options) !*Build.Step.UpdateSourceFiles {
-    const file = try compile(b, opts);
+    const output_path = try compile(b, opts);
     var copy_step = b.addUpdateSourceFiles();
-    copy_step.addCopyFileToSource(file, opts.output);
+    copy_step.addCopyFileToSource(output_path, opts.output);
     return copy_step;
+}
+
+pub fn createModule(
+    b: *Build,
+    opts: Options,
+    sokol_module: *Build.Module,
+    module_name: []const u8,
+) !*Build.Module {
+    const output_path = try compile(b, opts);
+    const shader_module = b.addModule(module_name, .{ .root_source_file = output_path });
+    shader_module.addImport("sokol", sokol_module);
+    return shader_module;
 }
 
 /// target shader languages
@@ -114,7 +126,7 @@ fn getShdcLazyPath(
     if (opt_shdc_dir) |shdc_dir| {
         return b.path(b.pathJoin(&.{ shdc_dir, sub_path }));
     }
-    std.log.err("Missing Sokol shader compiler path. Provide either shdc_dep or shdc_dir in Options struct", .{});
+    std.log.err("Missing shdc compiler path. Provide either shdc_dep or shdc_dir in Options", .{});
     return error.ShdcMissingPath;
 }
 
