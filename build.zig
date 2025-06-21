@@ -29,7 +29,7 @@ pub const Options = struct {
 
 pub fn compile(b: *Build, opts: Options) !Build.LazyPath {
     const shdc_lazy_path = try getShdcLazyPath(b, opts.shdc_dep, opts.shdc_dir);
-    const args = try optsToArgs(opts, b, shdc_lazy_path);
+    const args = try optsToArgs(b, opts, shdc_lazy_path);
     var run = b.addSystemCommand(args);
     run.addArgs(&.{"--input"});
     run.addFileArg(b.path(opts.input));
@@ -130,7 +130,7 @@ fn getShdcLazyPath(
     return error.ShdcMissingPath;
 }
 
-fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []const u8 {
+fn optsToArgs(b: *Build, opts: Options, tool_path: Build.LazyPath) ![]const []const u8 {
     const a = b.allocator;
     var arr: std.ArrayListUnmanaged([]const u8) = .empty;
     try arr.append(a, tool_path.getPath(b));
