@@ -37,11 +37,11 @@ pub fn compile(b: *Build, opts: Options) !Build.LazyPath {
     return run.addOutputFileArg(opts.output);
 }
 
-pub fn createSourceFile(b: *Build, opts: Options) !*Build.Step.UpdateSourceFiles {
+pub fn createSourceFile(b: *Build, opts: Options) !*Build.Step {
     const output_path = try compile(b, opts);
     const copy_step = b.addUpdateSourceFiles();
     copy_step.addCopyFileToSource(output_path, opts.output);
-    return copy_step;
+    return &copy_step.step;
 }
 
 pub fn createModule(
@@ -173,7 +173,7 @@ fn optsToArgs(b: *Build, opts: Options, tool_path: Build.LazyPath) ![]const []co
 }
 
 pub fn build(b: *Build) !void {
-    const result = try createSourceFile(b, .{
+    const shader = try createSourceFile(b, .{
         .shdc_dir = "./",
         .input = "testdata/triangle.glsl",
         .output = "testdata/triangle.glsl.zig",
@@ -181,5 +181,5 @@ pub fn build(b: *Build) !void {
     });
 
     const test_step = b.step("test", "Test sokol-shdc compilation");
-    test_step.dependOn(&result.step);
+    test_step.dependOn(shader);
 }
