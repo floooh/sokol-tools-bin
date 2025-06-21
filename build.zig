@@ -177,10 +177,7 @@ pub fn build(b: *Build) !void {
         .shdc_dir = "./",
         .input = "testdata/triangle.glsl",
         .output = "testdata/triangle.glsl.zig",
-        .slang = .{
-            .glsl430 = true,
-        },
-        .reflection = true,
+        .slang = .{ .glsl430 = true },
     });
 
     const test_step = b.step("test", "Test sokol-shdc compilation");
