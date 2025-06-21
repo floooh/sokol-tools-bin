@@ -30,7 +30,7 @@ pub const Options = struct {
 pub fn compile(b: *Build, opts: Options) !Build.LazyPath {
     const shdc_lazy_path = try getShdcLazyPath(b, opts.shdc_dep, opts.shdc_dir);
     const args = try optsToArgs(b, opts, shdc_lazy_path);
-    var run = b.addSystemCommand(args);
+    const run = b.addSystemCommand(args);
     run.addArgs(&.{"--input"});
     run.addFileArg(b.path(opts.input));
     run.addArgs(&.{"--output"});
@@ -39,7 +39,7 @@ pub fn compile(b: *Build, opts: Options) !Build.LazyPath {
 
 pub fn createSourceFile(b: *Build, opts: Options) !*Build.Step.UpdateSourceFiles {
     const output_path = try compile(b, opts);
-    var copy_step = b.addUpdateSourceFiles();
+    const copy_step = b.addUpdateSourceFiles();
     copy_step.addCopyFileToSource(output_path, opts.output);
     return copy_step;
 }
