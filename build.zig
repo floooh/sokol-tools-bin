@@ -10,7 +10,7 @@ const Build = std.Build;
 pub const Options = struct {
     shdc_dep: ?*Build.Dependency = null,
     shdc_dir: ?[]const u8 = null,
-    input: Build.LazyPath,
+    input: []const u8,
     output: []const u8,
     slang: Slang,
     format: Format = .sokol_zig,
@@ -18,7 +18,6 @@ pub const Options = struct {
     defines: ?[][]const u8 = null,
     module: ?[]const u8 = null,
     reflection: bool = false,
-    insource: bool = true,
     bytecode: bool = false,
     dump: bool = false,
     genver: ?[]const u8 = null,
@@ -28,33 +27,21 @@ pub const Options = struct {
     no_log_cmdline: bool = true,
 };
 
-pub const Result = struct {
-    run: *Build.Step.Run,
-    step: *Build.Step,
-    output: Build.LazyPath,
-};
-
-pub fn compile(b: *Build, opts: Options) !Result {
+pub fn compile(b: *Build, opts: Options) !Build.LazyPath {
     const shdc_lazy_path = try getShdcLazyPath(b, opts.shdc_dep, opts.shdc_dir);
     const args = try optsToArgs(opts, b, shdc_lazy_path);
     var run = b.addSystemCommand(args);
     run.addArgs(&.{"--input"});
-    run.addFileArg(opts.input);
+    run.addFileArg(b.path(opts.input));
     run.addArgs(&.{"--output"});
-    const output = run.addOutputFileArg(opts.output);
+    return run.addOutputFileArg(opts.output);
+}
 
-    const insource_step = if (opts.insource) blk: {
-        var update_step = b.addUpdateSourceFiles();
-        update_step.addCopyFileToSource(output, opts.output);
-        update_step.step.dependOn(&run.step);
-        break :blk &update_step.step;
-    } else &run.step;
-
-    return .{
-        .run = run,
-        .step = if (opts.insource) insource_step else &run.step,
-        .output = output,
-    };
+pub fn createSourceFile(b: *Build, opts: Options) !*Build.Step.UpdateSourceFiles {
+    const file = try compile(b, opts);
+    var copy_step = b.addUpdateSourceFiles();
+    copy_step.addCopyFileToSource(file, opts.output);
+    return copy_step;
 }
 
 /// target shader languages
@@ -174,13 +161,10 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
 }
 
 pub fn build(b: *Build) !void {
-    const input_path = "testdata/triangle.glsl";
-    const output_path = "testdata/triangle.glsl.zig";
-
-    const result = try compile(b, .{
+    const result = try createSourceFile(b, .{
         .shdc_dir = "./",
-        .input = b.path(input_path),
-        .output = output_path,
+        .input = "testdata/triangle.glsl",
+        .output = "testdata/triangle.glsl.zig",
         .slang = .{
             .glsl430 = true,
         },
@@ -188,5 +172,5 @@ pub fn build(b: *Build) !void {
     });
 
     const test_step = b.step("test", "Test sokol-shdc compilation");
-    test_step.dependOn(result.step);
+    test_step.dependOn(&result.step);
 }
