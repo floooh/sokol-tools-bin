@@ -46,9 +46,9 @@ pub fn createSourceFile(b: *Build, opts: Options) !*Build.Step {
 
 pub fn createModule(
     b: *Build,
-    opts: Options,
-    sokol_module: *Build.Module,
     module_name: []const u8,
+    sokol_module: *Build.Module,
+    opts: Options,
 ) !*Build.Module {
     const output_path = try compile(b, opts);
     const shader_module = b.addModule(module_name, .{ .root_source_file = output_path });
