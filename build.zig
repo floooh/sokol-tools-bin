@@ -8,9 +8,10 @@ const Allocator = std.mem.Allocator;
 const Build = std.Build;
 
 pub const Options = struct {
-    dep_shdc: *Build.Dependency,
-    input: Build.LazyPath,
-    output: Build.LazyPath,
+    shdc_dep: ?*Build.Dependency = null,
+    shdc_dir: ?[]const u8 = null,
+    input: []const u8,
+    output: []const u8,
     slang: Slang,
     format: Format = .sokol_zig,
     tmp_dir: ?Build.LazyPath = null,
@@ -26,12 +27,33 @@ pub const Options = struct {
     no_log_cmdline: bool = true,
 };
 
-pub fn compile(b: *Build, opts: Options) !*Build.Step.Run {
-    const shdc_path = try getShdcLazyPath(opts.dep_shdc);
-    const args = try optsToArgs(opts, b, shdc_path);
-    var step = b.addSystemCommand(args);
-    step.addFileArg(opts.input);
-    return step;
+pub fn compile(b: *Build, opts: Options) !Build.LazyPath {
+    const shdc_lazy_path = try getShdcLazyPath(b, opts.shdc_dep, opts.shdc_dir);
+    const args = try optsToArgs(b, opts, shdc_lazy_path);
+    const run = b.addSystemCommand(args);
+    run.addArgs(&.{"--input"});
+    run.addFileArg(b.path(opts.input));
+    run.addArgs(&.{"--output"});
+    return run.addOutputFileArg(opts.output);
+}
+
+pub fn createSourceFile(b: *Build, opts: Options) !*Build.Step {
+    const output_path = try compile(b, opts);
+    const copy_step = b.addUpdateSourceFiles();
+    copy_step.addCopyFileToSource(output_path, opts.output);
+    return &copy_step.step;
+}
+
+pub fn createModule(
+    b: *Build,
+    module_name: []const u8,
+    sokol_module: *Build.Module,
+    opts: Options,
+) !*Build.Module {
+    const output_path = try compile(b, opts);
+    const shader_module = b.addModule(module_name, .{ .root_source_file = output_path });
+    shader_module.addImport("sokol", sokol_module);
+    return shader_module;
 }
 
 /// target shader languages
@@ -78,26 +100,40 @@ fn formatToString(f: Format) []const u8 {
     return @tagName(f);
 }
 
-fn getShdcLazyPath(dep_shdc: *Build.Dependency) !Build.LazyPath {
-    const intel = builtin.cpu.arch.isX86();
-    const opt_sub_path: ?[]const u8 = switch (builtin.os.tag) {
-        .windows => "bin/win32/sokol-shdc.exe",
-        .linux => if (intel) "bin/linux/sokol-shdc" else "bin/linux_arm64/sokol-shdc",
-        .macos => if (intel) "bin/osx/sokol-shdc" else "bin/osx_arm64/sokol-shdc",
-        else => null,
-    };
-    if (opt_sub_path) |sub_path| {
-        return dep_shdc.path(sub_path);
-    } else {
-        return error.ShdcUnsupportedPlatform;
-    }
+pub fn getShdcSubPath() error{ShdcUnsupportedPlatform}![]const u8 {
+    const os = builtin.os.tag;
+    const arch = builtin.cpu.arch;
+
+    if (os == .macos and arch == .x86_64) return "bin/osx/sokol-shdc";
+    if (os == .macos and arch == .aarch64) return "bin/osx_arm64/sokol-shdc";
+    if (os == .linux and arch == .x86_64) return "bin/linux/sokol-shdc";
+    if (os == .linux and arch == .aarch64) return "bin/linux_arm64/sokol-shdc";
+    if (os == .windows and arch == .x86_64) return "bin/win32/sokol-shdc.exe";
+
+    std.log.err("Unsupported platform: {s}-{s}", .{ @tagName(os), @tagName(arch) });
+    return error.ShdcUnsupportedPlatform;
 }
 
-fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []const u8 {
+fn getShdcLazyPath(
+    b: *Build,
+    opt_shdc_dep: ?*Build.Dependency,
+    opt_shdc_dir: ?[]const u8,
+) error{ ShdcUnsupportedPlatform, ShdcMissingPath }!Build.LazyPath {
+    const sub_path = try getShdcSubPath();
+    if (opt_shdc_dep) |shdc_dep| {
+        return shdc_dep.path(sub_path);
+    }
+    if (opt_shdc_dir) |shdc_dir| {
+        return b.path(b.pathJoin(&.{ shdc_dir, sub_path }));
+    }
+    std.log.err("Missing shdc compiler path. Provide either shdc_dep or shdc_dir in Options", .{});
+    return error.ShdcMissingPath;
+}
+
+fn optsToArgs(b: *Build, opts: Options, tool_path: Build.LazyPath) ![]const []const u8 {
     const a = b.allocator;
     var arr: std.ArrayListUnmanaged([]const u8) = .empty;
     try arr.append(a, tool_path.getPath(b));
-    try arr.appendSlice(a, &.{ "-o", opts.output.getPath(b) });
     try arr.appendSlice(a, &.{ "-l", try slangToString(opts.slang, a) });
     try arr.appendSlice(a, &.{ "-f", formatToString(opts.format) });
     if (opts.tmp_dir) |tmp_dir| {
@@ -133,11 +169,17 @@ fn optsToArgs(opts: Options, b: *Build, tool_path: Build.LazyPath) ![]const []co
     if (opts.no_log_cmdline) {
         try arr.append(a, "--no-log-cmdline");
     }
-    // important: keep this last
-    try arr.append(a, "-i");
     return arr.toOwnedSlice(a);
 }
 
-pub fn build(b: *Build) void {
-    _ = b;
+pub fn build(b: *Build) !void {
+    const shader = try createSourceFile(b, .{
+        .shdc_dir = "./",
+        .input = "testdata/triangle.glsl",
+        .output = "testdata/triangle.glsl.zig",
+        .slang = .{ .glsl430 = true },
+    });
+
+    const test_step = b.step("test", "Test sokol-shdc compilation");
+    test_step.dependOn(shader);
 }
