@@ -58,7 +58,7 @@ pub fn createModule(
 
 /// target shader languages
 /// NOTE: make sure that field names match the cmdline arg string
-pub const Slang = packed struct(u10) {
+pub const Slang = packed struct(u11) {
     glsl410: bool = false,
     glsl430: bool = false,
     glsl300es: bool = false,
@@ -69,6 +69,7 @@ pub const Slang = packed struct(u10) {
     metal_ios: bool = false,
     metal_sim: bool = false,
     wgsl: bool = false,
+    spirv_vk: bool = false,
 };
 
 fn slangToString(slang: Slang, a: Allocator) ![]const u8 {
@@ -94,6 +95,7 @@ pub const Format = enum {
     sokol_rust,
     sokol_d,
     sokol_jai,
+    sokol_c3,
 };
 
 fn formatToString(f: Format) []const u8 {
