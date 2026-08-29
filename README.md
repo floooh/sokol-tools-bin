@@ -1,6 +1,6 @@
 # sokol-tools-bin
 
-Binaries and integrations for https://github.com/floooh/sokol-tools.
+Binaries and fips integration for https://github.com/floooh/sokol-tools
 
 ## CMake usage
 
