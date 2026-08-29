@@ -17,7 +17,7 @@ my-project/
 ├── shaders/
 │   └── triangle.glsl
 └── third_party/
-    └── sokol-tools-bin-only-cmake/
+    └── sokol-tools-bin/
         ├── sokol_shaders.cmake
         └── bin/
 ```
@@ -29,7 +29,7 @@ cmake_minimum_required(VERSION 3.17)
 
 project(SimpleApp LANGUAGES C)
 
-include("${CMAKE_CURRENT_LIST_DIR}/third_party/sokol-tools-bin-only-cmake/sokol_shaders.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/third_party/sokol-tools-bin/sokol_shaders.cmake")
 
 set(SHADER "shaders/triangle.glsl")
 
