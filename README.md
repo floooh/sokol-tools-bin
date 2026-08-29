@@ -33,7 +33,25 @@ include("${CMAKE_CURRENT_LIST_DIR}/third_party/sokol-tools-bin-only-cmake/sokol_
 
 set(SHADER "shaders/triangle.glsl")
 
-sokol_shader("${SHADER}" "glsl430")
+# The second argument selects shader target languages for the backends:
+#   glsl410       - desktop OpenGL 4.1
+#   glsl430       - OpenGL
+#   metal_macos   - Metal on macOS
+#   metal_ios     - Metal on iOS devices
+#   metal_sim     - Metal on the iOS Simulator
+#   glsl300es     - OpenGL ES 3 / WebGL 2
+#   glsl310es     - OpenGL ES 3.1
+#   hlsl4         - Direct3D 11 with HLSL 4
+#   hlsl5         - Direct3D 11 on Windows
+#   wgsl          - WebGPU
+#   spirv_vk      - Vulkan/SPIR-V
+# Choose only one of glsl410/glsl430 and one of hlsl4/hlsl5.
+# Multiple backends can be specified with a colon, for example:
+#   "glsl430:metal_macos:metal_ios:metal_sim:glsl300es:glsl310es:hlsl5:wgsl:spirv_vk"
+sokol_shader(
+    "${SHADER}"
+    "glsl430:metal_macos:metal_ios:metal_sim:glsl300es:glsl310es:hlsl5:wgsl:spirv_vk"
+)
 
 set(SHADER_HEADER
     "${CMAKE_CURRENT_BINARY_DIR}/compile_shaders/${SHADER}.h"
