@@ -40,7 +40,7 @@ set(SHADER "shaders/triangle.glsl")
 #   metal_ios     - Metal on iOS devices
 #   metal_sim     - Metal on the iOS Simulator
 #   glsl300es     - OpenGL ES 3 / WebGL 2
-#   glsl310es     - OpenGL ES 3.1
+#   glsl310es     - GLES3.1 (currently not supported by sokol_gfx.h)
 #   hlsl4         - Direct3D 11 with HLSL 4
 #   hlsl5         - Direct3D 11 on Windows
 #   wgsl          - WebGPU
@@ -66,6 +66,8 @@ target_include_directories(SimpleApp PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}/compile_shaders"
 )
 ```
+
+For the complete `sokol-shdc` documentation, see the [official documentation](https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md).
 
 The generated header can then be included from `main.c`:
 
