@@ -1,0 +1,7 @@
+.{
+    .name = .sokolshdc,
+    .fingerprint = 0xe0596dde0e9962af,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.14.0",
+    .paths = .{ "bin", "build.zig", "build.zig.zon" },
+}
