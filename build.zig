@@ -68,7 +68,7 @@ pub fn createModule(
 
 /// target shader languages
 /// NOTE: make sure that field names match the cmdline arg string
-pub const Slang = packed struct(u11) {
+pub const Slang = struct {
     glsl410: bool = false,
     glsl430: bool = false,
     glsl300es: bool = false,
